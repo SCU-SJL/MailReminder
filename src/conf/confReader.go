@@ -15,6 +15,7 @@ type ReminderConfig struct {
 	Port    string   `xml:"port"`
 	Retry   string   `xml:"retry"`
 	Max     string   `xml:"max"`
+	Listen  string   `xml:"listen"`
 }
 
 func (conf *ReminderConfig) GetMax() (int, error) {
@@ -39,6 +40,10 @@ func (conf *ReminderConfig) GetAuth() string {
 
 func (conf *ReminderConfig) GetAddr() string {
 	return conf.Addr
+}
+
+func (conf *ReminderConfig) GetListen() (int, error) {
+	return strconv.Atoi(conf.Listen)
 }
 
 func GetConfig(path string) (*ReminderConfig, error) {
