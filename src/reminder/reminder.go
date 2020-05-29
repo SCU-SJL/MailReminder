@@ -4,19 +4,16 @@ import (
 	"MailReminder/src/conf"
 	"fmt"
 	"gopkg.in/gomail.v2"
-	"net"
 	"sync"
 	"time"
 )
 
 type Reminder struct {
-	user  string
+	User  string
 	auth  string
 	host  string
 	port  int
 	retry int
-	conn  net.Conn
-
 	mails []*Mail
 	mu    sync.Mutex
 }
@@ -56,7 +53,7 @@ func (reminder *Reminder) Serve() {
 
 func (reminder *Reminder) sendMail(msg *gomail.Message) error {
 	fmt.Println("sending")
-	d := gomail.NewDialer(reminder.host, reminder.port, reminder.user, reminder.auth)
+	d := gomail.NewDialer(reminder.host, reminder.port, reminder.User, reminder.auth)
 	sendErr := d.DialAndSend(msg)
 	if sendErr != nil {
 		for i := 0; i < reminder.retry; i++ {
@@ -85,12 +82,11 @@ func NewReminder(conf *conf.ReminderConfig) (*Reminder, error) {
 	}
 
 	return &Reminder{
-		user:  conf.GetAddr(),
+		User:  conf.GetAddr(),
 		auth:  conf.GetAuth(),
 		host:  conf.GetHost(),
 		port:  p,
 		retry: r,
-		conn:  nil,
 		mails: make([]*Mail, 0, m),
 	}, nil
 }
