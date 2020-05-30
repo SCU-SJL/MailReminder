@@ -28,12 +28,6 @@ func (m *Mail) isReady() bool {
 	return now.After(m.Time)
 }
 
-func (reminder *Reminder) NewMsg(msg *Mail) {
-	reminder.mu.Lock()
-	defer reminder.mu.Unlock()
-	reminder.mails = append(reminder.mails, msg)
-}
-
 func (reminder *Reminder) Serve() {
 	for {
 		reminder.mu.Lock()
@@ -49,6 +43,32 @@ func (reminder *Reminder) Serve() {
 		reminder.mu.Unlock()
 		time.Sleep(1 * time.Second)
 	}
+}
+
+func (reminder *Reminder) NewMsg(msg *Mail) {
+	reminder.mu.Lock()
+	defer reminder.mu.Unlock()
+	reminder.mails = append(reminder.mails, msg)
+}
+
+func (reminder *Reminder) GetAllSubjects() []string {
+	reminder.mu.Lock()
+	defer reminder.mu.Unlock()
+	var subjects []string
+	for _, m := range reminder.mails {
+		subjects = append(subjects, m.Msg.GetHeader("Subjects")...)
+	}
+	return subjects
+}
+
+func (reminder *Reminder) DelMsg(index int) bool {
+	reminder.mu.Lock()
+	defer reminder.mu.Unlock()
+	if index >= len(reminder.mails) || index < 0 {
+		return false
+	}
+	reminder.mails = append(reminder.mails[:index], reminder.mails[index+1:]...)
+	return true
 }
 
 func (reminder *Reminder) sendMail(msg *gomail.Message) error {
