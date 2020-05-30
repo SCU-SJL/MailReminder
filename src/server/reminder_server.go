@@ -3,6 +3,7 @@ package main
 import (
 	"MailReminder/src/conf"
 	"MailReminder/src/reminder"
+	"MailReminder/src/server/support"
 	"log"
 	"net"
 	"os"
@@ -33,6 +34,6 @@ func main() {
 		if err != nil {
 			continue
 		}
-		go handleConn(conn, mailReminder)
+		go support.HandleConn(conn, mailReminder)
 	}
 }
