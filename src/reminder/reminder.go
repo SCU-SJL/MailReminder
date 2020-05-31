@@ -2,11 +2,15 @@ package reminder
 
 import (
 	"MailReminder/src/conf"
-	"fmt"
 	"gopkg.in/gomail.v2"
+	"log"
+	"mime"
+	"strings"
 	"sync"
 	"time"
 )
+
+var decoder mime.WordDecoder
 
 type Reminder struct {
 	User  string
@@ -29,6 +33,7 @@ func (m *Mail) isReady() bool {
 }
 
 func (reminder *Reminder) Serve() {
+	log.Printf("[start] mail reminder\n")
 	for {
 		reminder.mu.Lock()
 		for i, mail := range reminder.mails {
@@ -45,34 +50,66 @@ func (reminder *Reminder) Serve() {
 	}
 }
 
-func (reminder *Reminder) NewMsg(msg *Mail) {
+func (reminder *Reminder) NewMsg(msg *Mail) bool {
 	reminder.mu.Lock()
 	defer reminder.mu.Unlock()
-	reminder.mails = append(reminder.mails, msg)
-}
-
-func (reminder *Reminder) GetAllSubjects() []string {
-	reminder.mu.Lock()
-	defer reminder.mu.Unlock()
-	var subjects []string
+	subject := msg.Msg.GetHeader("Subject")[0]
 	for _, m := range reminder.mails {
-		subjects = append(subjects, m.Msg.GetHeader("Subjects")...)
+		if m.Msg.GetHeader("Subject")[0] == subject {
+			return false
+		}
 	}
-	return subjects
-}
-
-func (reminder *Reminder) DelMsg(index int) bool {
-	reminder.mu.Lock()
-	defer reminder.mu.Unlock()
-	if index >= len(reminder.mails) || index < 0 {
-		return false
+	reminder.mails = append(reminder.mails, msg)
+	title, err := decoder.Decode(subject)
+	if err != nil {
+		title = subject
 	}
-	reminder.mails = append(reminder.mails[:index], reminder.mails[index+1:]...)
+	log.Printf("[new] subject: %s, sendTime: %s\n", title, msg.Time.Format("2006-01-02 15:04:05"))
 	return true
 }
 
+func (reminder *Reminder) GetMailList() (subjects []string, receivers [][]string, sendTime []string) {
+	reminder.mu.Lock()
+	defer reminder.mu.Unlock()
+	for _, m := range reminder.mails {
+		subject, err := decoder.Decode(m.Msg.GetHeader("Subject")[0])
+		if err != nil {
+			subject = m.Msg.GetHeader("Subject")[0]
+		}
+		subjects = append(subjects, subject)
+		receivers = append(receivers, m.Msg.GetHeader("To"))
+		sendTime = append(sendTime, m.Time.Format("2006-01-02 15:04:05"))
+	}
+	return
+}
+
+func (reminder *Reminder) DelMsg(prefix string) byte {
+	reminder.mu.Lock()
+	defer reminder.mu.Unlock()
+	var target = -1
+	var targetSub string
+	for i, m := range reminder.mails {
+		subject, _ := decoder.Decode(m.Msg.GetHeader("Subject")[0])
+		if strings.HasPrefix(subject, prefix) {
+			if target >= 0 {
+				return 2
+			}
+			target = i
+			targetSub = subject
+		}
+	}
+	if target < 0 {
+		return 1
+	}
+	reminder.mails = append(reminder.mails[:target], reminder.mails[target+1:]...)
+	log.Printf("[del] subject: %s\n", targetSub)
+	return 0
+}
+
 func (reminder *Reminder) sendMail(msg *gomail.Message) error {
-	fmt.Println("sending")
+	sub, _ := decoder.Decode(msg.GetHeader("Subject")[0])
+	log.Printf("[sending] subject: %s\n", sub)
+
 	d := gomail.NewDialer(reminder.host, reminder.port, reminder.User, reminder.auth)
 	sendErr := d.DialAndSend(msg)
 	if sendErr != nil {
@@ -81,6 +118,11 @@ func (reminder *Reminder) sendMail(msg *gomail.Message) error {
 				return nil
 			}
 		}
+	}
+	if sendErr != nil {
+		log.Printf("[failed] subject: %s\n", sub)
+	} else {
+		log.Printf("[success] subject: %s\n", sub)
 	}
 	return sendErr
 }
