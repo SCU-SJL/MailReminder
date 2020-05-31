@@ -8,7 +8,7 @@ import (
 )
 
 var ipAddr = flag.String("ip", "localhost", "ip address of host")
-var port = flag.String("p", "8888", "port number")
+var port = flag.String("p", "8447", "port number")
 var newMsg = flag.Bool("new", false, "upload new reminder to server")
 var delMsg = flag.Bool("del", false, "delete an existing reminder")
 var lsMsg = flag.Bool("ls", false, "list existing reminders")
@@ -30,6 +30,15 @@ func main() {
 	if *newMsg {
 		support.NewMsg(conn)
 		return
+	}
+
+	if *lsMsg {
+		support.ListMails(conn)
+		return
+	}
+
+	if *delMsg {
+		support.DelMsg(conn)
 	}
 }
 
