@@ -2,8 +2,8 @@
 A simple mail reminder.    
 #### How to use?
 + **Get Mail-Reminder server**
-  1. find it in /bin
-  2. or find it in release
+  1. find it in ```/bin```
+  2. or find it in ```release```
   3. or use ```go build``` to build ```/src/server/reminder_server.go```
 
 + **Make dir like this**
