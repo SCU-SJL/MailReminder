@@ -24,7 +24,7 @@ func HandleConn(conn net.Conn, rd *reminder.Reminder) {
 	}
 	switch datagram.Op {
 	case New:
-		newMail(datagram, rd)
+		newMail(datagram, rd, conn)
 	case Del:
 		delMail(datagram, rd, conn)
 	case Ls:
@@ -41,7 +41,7 @@ func readDatagram(conn net.Conn) (*protocol.Datagram, error) {
 	return protocol.ConvertToDatagram(buf[:n])
 }
 
-func newMail(datagram *protocol.Datagram, rd *reminder.Reminder) {
+func newMail(datagram *protocol.Datagram, rd *reminder.Reminder, conn net.Conn) {
 	msg := gomail.NewMessage()
 	msg.SetHeader("From", msg.FormatAddress(rd.User, "Mail-Reminder"))
 	msg.SetHeader("To", datagram.SendTo...)
@@ -53,15 +53,23 @@ func newMail(datagram *protocol.Datagram, rd *reminder.Reminder) {
 		Msg:  msg,
 		Time: t,
 	}
-	rd.NewMsg(mail)
+	ok := rd.NewMsg(mail)
+	if ok {
+		_, _ = conn.Write([]byte{0})
+		return
+	}
+	_, _ = conn.Write([]byte{1})
 }
 
 func listMails(rd *reminder.Reminder, conn net.Conn) {
-	subjects := struct {
-		Data []string `json:"data"`
-	}{Data: rd.GetAllSubjects()}
+	mails := struct {
+		Subjects  []string   `json:"subjects"`
+		Receivers [][]string `json:"receivers"`
+		SendTime  []string   `json:"send_time"`
+	}{}
+	mails.Subjects, mails.Receivers, mails.SendTime = rd.GetMailList()
 
-	jsonBytes, err := json.Marshal(subjects)
+	jsonBytes, err := json.Marshal(mails)
 	if err != nil {
 		return
 	}
@@ -69,10 +77,6 @@ func listMails(rd *reminder.Reminder, conn net.Conn) {
 }
 
 func delMail(datagram *protocol.Datagram, rd *reminder.Reminder, conn net.Conn) {
-	ok := rd.DelMsg(datagram.Id)
-	if ok {
-		_, _ = conn.Write([]byte{0})
-		return
-	}
-	_, _ = conn.Write([]byte{1})
+	status := rd.DelMsg(datagram.Subject)
+	_, _ = conn.Write([]byte{status})
 }
