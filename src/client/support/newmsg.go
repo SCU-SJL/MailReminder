@@ -76,6 +76,17 @@ func NewMsg(conn net.Conn) {
 	if err != nil {
 		log.Fatal(err)
 	}
+
+	resp := make([]byte, 1)
+	_, err = conn.Read(resp)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if resp[0] == 0 {
+		fmt.Println("success")
+		return
+	}
+	fmt.Printf("subject duplicate: '%s', try another subject\n", subject)
 }
 
 func readEmailAddr(reader *bufio.Reader) ([]string, error) {
