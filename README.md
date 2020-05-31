@@ -30,7 +30,7 @@ A simple mail reminder.
     
 + **Config File**
   + ```reminder_server``` cannot get started without ```/resource/config.xml```  
-  + ######**Template of config.xml:**
+  + **Template of config.xml:**
   + ```
       <config>
            <!--sender-->
