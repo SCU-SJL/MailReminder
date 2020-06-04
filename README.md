@@ -58,3 +58,5 @@ A simple mail reminder.
 + **PS**
   + if you are using ```QQ-Email``` as sender, then you should enter ```auth code``` in ```<auth>``` instead of your QQ password.
   + 如果你用QQ邮箱来作为邮件的发送者，在```<auth>```标签中你应该填写QQ邮箱的授权码，而不是你的QQ密码或者QQ邮箱密码
+  + I recommend you to use English for input, otherwise encoded utf-8 characters may appear.
+  + 推荐你使用英文来输入信息，否则可能会出现被编码过的 utf-8 字符串.
